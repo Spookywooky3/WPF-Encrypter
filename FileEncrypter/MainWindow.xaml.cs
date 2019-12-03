@@ -19,6 +19,8 @@ namespace FileEncrypter
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool AllocConsole();
 #endif
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", EntryPoint = "RtlZeroMemory")]
+        public static extern bool ZeroMemory(IntPtr Destination, int Length);
 
         private List<string> filePaths;
         public MainWindow()
@@ -69,48 +71,54 @@ namespace FileEncrypter
 
         private void Decrypt()
         {
-            OpenFileDialog fileDiag = new OpenFileDialog();
-
-            fileDiag.DefaultExt = ".*";
-            fileDiag.FileName = "File";
-            fileDiag.Filter = "(.*)|*.*";
-            fileDiag.Title = "File To Decrypt";
-            fileDiag.Multiselect = true;
-
-            bool? result = fileDiag.ShowDialog();
-            if (result == true)
+            Dispatcher.Invoke(() =>
             {
-                foreach (var file in fileDiag.FileNames)
+                OpenFileDialog fileDiag = new OpenFileDialog();
+
+                fileDiag.DefaultExt = ".*";
+                fileDiag.FileName = "File";
+                fileDiag.Filter = "(.*)|*.*";
+                fileDiag.Title = "File To Decrypt";
+                fileDiag.Multiselect = true;
+
+                bool? result = fileDiag.ShowDialog();
+                if (result == true)
                 {
-                    byte[] decryptedBytes = DecryptBytes(file);
-                    File.WriteAllBytes(file.Replace(".clover", string.Empty), decryptedBytes);
+                    foreach (var file in fileDiag.FileNames)
+                    {
+                        byte[] decryptedBytes = DecryptBytes(file);
+                        File.WriteAllBytes(file.Replace(".clover", string.Empty), decryptedBytes);
 
 #if DEBUG
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.WriteLine($"{ConsoleDateTag()} {GetFileNameFromPath(file)} decrypted!");
-                    Console.ResetColor();
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine($"{ConsoleDateTag()} {GetFileNameFromPath(file)} decrypted!");
+                        Console.ResetColor();
 #endif
+                    }
                 }
-            }
+            });
         }
 
         private void Encrypt()
         {
-            foreach (var file in filePaths)
+            Dispatcher.Invoke(() =>
             {
-                byte[] encryptedBytes = EncryptBytes(file);
-                File.WriteAllBytes($"{GetFileNameFromPath(file)}.clover", encryptedBytes);
+                foreach (var file in filePaths)
+                {
+                    byte[] encryptedBytes = EncryptBytes(file);
+                    File.WriteAllBytes($"{GetFileNameFromPath(file)}.clover", encryptedBytes);
 
 #if DEBUG
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"{ConsoleDateTag()} {GetFileNameFromPath(file)} encrypted!");
-                Console.ResetColor();
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"{ConsoleDateTag()} {GetFileNameFromPath(file)} encrypted!");
+                    Console.ResetColor();
 #endif
-            }
-            listBox.Items.Clear();
+                }
+                listBox.Items.Clear();
+            });
         }
 
-        // Theres probably already a c# method to do this but it was honestly
+        // Theres probably already a c# function to do this but it was honestly
         // just easier for me to do this rather than search for it
         private string GetFileNameFromPath(string filePath)
         {
@@ -127,68 +135,68 @@ namespace FileEncrypter
         private byte[] EncryptBytes(string file)
         {
             byte[] encryptedBytes = { 0x0 };
-            Dispatcher.Invoke(() =>
+            byte[] byteArray = File.ReadAllBytes(file);
+
+            using (Aes aes = new AesCng())
             {
-                byte[] byteArray = File.ReadAllBytes(file);
-                
-                using (Aes aes = new AesCng())
+                PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
+
+                aes.Key = pwDerivedBytes.GetBytes(aes.KeySize / 8);
+                aes.IV = pwDerivedBytes.GetBytes(aes.BlockSize / 8);
+
+                GCHandle gcHandle = GCHandle.Alloc(aes.Key, GCHandleType.Pinned);
+
+                using (MemoryStream memStream = new MemoryStream())
                 {
-                    PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
-
-                    aes.Key = pwDerivedBytes.GetBytes(aes.KeySize / 8);
-                    aes.IV = pwDerivedBytes.GetBytes(aes.BlockSize / 8);
-
-                    using (MemoryStream memStream = new MemoryStream())
+                    using (CryptoStream cryptoStream = new CryptoStream(memStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        using (CryptoStream cryptoStream = new CryptoStream(memStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
-                        {
-                            cryptoStream.Write(byteArray, 0, byteArray.Length);
-                            cryptoStream.Close();
-                            encryptedBytes = memStream.ToArray();
+                        cryptoStream.Write(byteArray, 0, byteArray.Length);
+                        cryptoStream.Close();
+                        encryptedBytes = memStream.ToArray();
 #if DEBUG
-                            Console.ForegroundColor = ConsoleColor.Cyan;
-                            Console.WriteLine($"{ConsoleDateTag()} Encrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
-                            Console.ResetColor();
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine($"{ConsoleDateTag()} Encrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
+                        Console.ResetColor();
 #endif
-                            return memStream.ToArray();
-                        }
+                        ZeroMemory(gcHandle.AddrOfPinnedObject(), aes.Key.Length);
+                        return encryptedBytes;
                     }
                 }
-            });
-            return encryptedBytes;
+            }            
         }
 
         private byte[] DecryptBytes(string file)
         {
             byte[] decryptedBytes = { 0x0 };
-            Dispatcher.Invoke(() =>
+            byte[] byteArray = File.ReadAllBytes(file);
+
+            using (Aes aes = new AesCng())
             {
-                byte[] byteArray = File.ReadAllBytes(file);
+                PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
 
-                using (Aes aes = new AesCng())
+                aes.Key = pwDerivedBytes.GetBytes(aes.KeySize / 8);
+                aes.IV = pwDerivedBytes.GetBytes(aes.BlockSize / 8);
+
+                GCHandle gcHandle = GCHandle.Alloc(aes.Key, GCHandleType.Pinned);
+
+                using (MemoryStream memStream = new MemoryStream())
                 {
-                    PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
-
-                    aes.Key = pwDerivedBytes.GetBytes(aes.KeySize / 8);
-                    aes.IV = pwDerivedBytes.GetBytes(aes.BlockSize / 8);
-
-                    using (MemoryStream memStream = new MemoryStream())
+                    using (CryptoStream cryptoStream = new CryptoStream(memStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
                     {
-                        using (CryptoStream cryptoStream = new CryptoStream(memStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
-                        {
-                            cryptoStream.Write(byteArray, 0, byteArray.Length);
-                            cryptoStream.Close();
+                        cryptoStream.Write(byteArray, 0, byteArray.Length);
+                        cryptoStream.Close();
+                        decryptedBytes = memStream.ToArray();
 #if DEBUG
-                            Console.ForegroundColor = ConsoleColor.Cyan;
-                            Console.WriteLine($"{ConsoleDateTag()} Decrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
-                            Console.ResetColor();
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine($"{ConsoleDateTag()} Decrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
+                        Console.ResetColor();
 #endif
-                            return memStream.ToArray();
-                        }
+                        ZeroMemory(gcHandle.AddrOfPinnedObject(), aes.Key.Length);
+                        return decryptedBytes;
                     }
                 }
-            });
-            return decryptedBytes;
+            }
         }
     }
 }
+    
