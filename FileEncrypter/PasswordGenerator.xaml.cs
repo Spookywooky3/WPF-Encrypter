@@ -24,11 +24,6 @@ namespace FileEncrypter
             InitializeComponent();
         }
 
-        private void slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-
-        }
-
         private void pwGenButton_Click(object sender, RoutedEventArgs e)
         {
             // Thanks stackoverflow
