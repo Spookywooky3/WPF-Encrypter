@@ -134,7 +134,7 @@ namespace FileEncrypter
 
         private byte[] EncryptBytes(string file)
         {
-            byte[] byteArray = File.ReadAllBytes(file);
+            byte[] plainByteArray = File.ReadAllBytes(file);
             using (Aes aes = new AesCng())
             {
                 PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
@@ -148,7 +148,7 @@ namespace FileEncrypter
                 {
                     using (CryptoStream cryptoStream = new CryptoStream(memStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        cryptoStream.Write(byteArray, 0, byteArray.Length);
+                        cryptoStream.Write(plainByteArray, 0, plainByteArray.Length);
                         cryptoStream.Close();
                         byte[] encryptedBytes = memStream.ToArray();
 #if DEBUG
@@ -163,7 +163,7 @@ namespace FileEncrypter
 
         private byte[] DecryptBytes(string file)
         {
-            byte[] byteArray = File.ReadAllBytes(file);
+            byte[] encryptedByteArray = File.ReadAllBytes(file);
             using (Aes aes = new AesCng())
             {
                 PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
@@ -176,7 +176,7 @@ namespace FileEncrypter
                 {
                     using (CryptoStream cryptoStream = new CryptoStream(memStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
                     {
-                        cryptoStream.Write(byteArray, 0, byteArray.Length);
+                        cryptoStream.Write(encryptedByteArray, 0, encryptedByteArray.Length);
                         cryptoStream.Close();
                         byte[] decryptedBytes = memStream.ToArray();
 #if DEBUG
