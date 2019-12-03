@@ -5,4 +5,5 @@ A quick encrypter I made to experiment using WPF
 Build using .NET Framework 4.7.2
 ## What is this?
 This is a project that I created to experiment using WPF to further my knowledge. I'm not much of a UI designer so don't bully me lmao
+
 ![Screenshot](https://i.gyazo.com/6da8fa2087f2c457d1d5684058775f73.png)
