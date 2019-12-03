@@ -134,9 +134,7 @@ namespace FileEncrypter
 
         private byte[] EncryptBytes(string file)
         {
-            byte[] encryptedBytes = { 0x0 };
             byte[] byteArray = File.ReadAllBytes(file);
-
             using (Aes aes = new AesCng())
             {
                 PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
@@ -152,7 +150,7 @@ namespace FileEncrypter
                     {
                         cryptoStream.Write(byteArray, 0, byteArray.Length);
                         cryptoStream.Close();
-                        encryptedBytes = memStream.ToArray();
+                        byte[] encryptedBytes = memStream.ToArray();
 #if DEBUG
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine($"{ConsoleDateTag()} Encrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
@@ -167,13 +165,13 @@ namespace FileEncrypter
 
         private byte[] DecryptBytes(string file)
         {
-            byte[] decryptedBytes = { 0x0 };
             byte[] byteArray = File.ReadAllBytes(file);
             using (Aes aes = new AesCng())
             {
                 PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
                 aes.Key = pwDerivedBytes.GetBytes(aes.KeySize / 8);
                 aes.IV = pwDerivedBytes.GetBytes(aes.BlockSize / 8);
+
                 GCHandle gcHandle = GCHandle.Alloc(aes.Key, GCHandleType.Pinned);
 
                 using (MemoryStream memStream = new MemoryStream())
@@ -182,7 +180,7 @@ namespace FileEncrypter
                     {
                         cryptoStream.Write(byteArray, 0, byteArray.Length);
                         cryptoStream.Close();
-                        decryptedBytes = memStream.ToArray();
+                        byte[] decryptedBytes = memStream.ToArray();
 #if DEBUG
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine($"{ConsoleDateTag()} Decrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
