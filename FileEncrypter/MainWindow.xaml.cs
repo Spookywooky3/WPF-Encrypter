@@ -169,14 +169,11 @@ namespace FileEncrypter
         {
             byte[] decryptedBytes = { 0x0 };
             byte[] byteArray = File.ReadAllBytes(file);
-
             using (Aes aes = new AesCng())
             {
                 PasswordDeriveBytes pwDerivedBytes = new PasswordDeriveBytes(passwordTextBox.Text, new byte[] { 0x32, 0xF4, 0x83, 0xC });
-
                 aes.Key = pwDerivedBytes.GetBytes(aes.KeySize / 8);
                 aes.IV = pwDerivedBytes.GetBytes(aes.BlockSize / 8);
-
                 GCHandle gcHandle = GCHandle.Alloc(aes.Key, GCHandleType.Pinned);
 
                 using (MemoryStream memStream = new MemoryStream())
