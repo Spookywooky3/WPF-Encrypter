@@ -152,9 +152,7 @@ namespace FileEncrypter
                         cryptoStream.Close();
                         byte[] encryptedBytes = memStream.ToArray();
 #if DEBUG
-                        Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine($"{ConsoleDateTag()} Encrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
-                        Console.ResetColor();
 #endif
                         ZeroMemory(gcHandle.AddrOfPinnedObject(), aes.Key.Length);
                         return encryptedBytes;
@@ -182,9 +180,7 @@ namespace FileEncrypter
                         cryptoStream.Close();
                         byte[] decryptedBytes = memStream.ToArray();
 #if DEBUG
-                        Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine($"{ConsoleDateTag()} Decrypting {GetFileNameFromPath(file)} using password {passwordTextBox.Text}");
-                        Console.ResetColor();
 #endif
                         ZeroMemory(gcHandle.AddrOfPinnedObject(), aes.Key.Length);
                         return decryptedBytes;
@@ -194,4 +190,3 @@ namespace FileEncrypter
         }
     }
 }
-    
