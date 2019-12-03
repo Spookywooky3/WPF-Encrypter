@@ -110,7 +110,7 @@ namespace FileEncrypter
             listBox.Items.Clear();
         }
 
-        // Theres probably already a c# function to do this but it was honestly
+        // Theres probably already a c# method to do this but it was honestly
         // just easier for me to do this rather than search for it
         private string GetFileNameFromPath(string filePath)
         {
